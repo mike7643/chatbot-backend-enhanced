@@ -6,7 +6,7 @@ import dev.langchain4j.model.TokenCountEstimator;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiTokenCountEstimator;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
-import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
+import com.comprehensive.eureka.chatbot.langchain.session.RedisChatMemoryStore;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,27 +14,31 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class LangChainConfig {
 
-    @Value("${openai.api.key}")
-    private String openAiKey;
+    @Value("${gemini.api.key}")
+    private String geminiApiKey;
 
-    private String modelName = "gpt-4.1-mini";  // gpt-3.5-turbo (구형), gpt-4.1-nano (속도 빠른 모델)
+    private static final String GEMINI_OPENAI_COMPATIBLE_BASE_URL =
+            "https://generativelanguage.googleapis.com/v1beta/openai/";
+    private static final String MODEL_NAME = "gemini-3.1-flash-lite";
 
     @Bean
     public OpenAiChatModel openAiChatModel() {
         return OpenAiChatModel.builder()
-                .apiKey(openAiKey)
-                .modelName(modelName)
+                .baseUrl(GEMINI_OPENAI_COMPATIBLE_BASE_URL)
+                .apiKey(geminiApiKey)
+                .modelName(MODEL_NAME)
                 .build();
     }
 
     @Bean
-    public ChatMemoryStore memoryStore() {
-        return new InMemoryChatMemoryStore();
+    public ChatMemoryStore memoryStore(RedisChatMemoryStore redisChatMemoryStore) {
+        return redisChatMemoryStore;
     }
 
     @Bean
     public TokenCountEstimator tokenCountEstimator() {
-        return new OpenAiTokenCountEstimator(modelName);
+        // 대화 메모리의 길이 제한용 근사치로만 OpenAI 토크나이저를 사용한다.
+        return new OpenAiTokenCountEstimator("gpt-4.1-mini");
     }
 
     @Bean
