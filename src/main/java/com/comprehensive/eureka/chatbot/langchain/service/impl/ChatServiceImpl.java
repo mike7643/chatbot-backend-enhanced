@@ -22,6 +22,9 @@ import com.comprehensive.eureka.chatbot.langchain.service.ChatService;
 import com.comprehensive.eureka.chatbot.langchain.session.ChatSessionContext;
 import com.comprehensive.eureka.chatbot.langchain.session.ChatRoomLockService;
 import com.comprehensive.eureka.chatbot.langchain.session.ChatSessionStateService;
+import com.comprehensive.eureka.chatbot.langchain.session.RecommendationSessionContext;
+import com.comprehensive.eureka.chatbot.langchain.session.RecommendationSessionStateService;
+import com.comprehensive.eureka.chatbot.langchain.session.RecommendationSource;
 import com.comprehensive.eureka.chatbot.sentiment.service.PromptServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -85,6 +88,7 @@ public class ChatServiceImpl implements ChatService {
 
     private final ChatSessionStateService chatSessionStateService;
     private final ChatRoomLockService chatRoomLockService;
+    private final RecommendationSessionStateService recommendationSessionStateService;
     Map<String, String> promptMap;
     Map<String, String> endSignalMap;
     Set<String> removeTarget;
@@ -333,6 +337,10 @@ public class ChatServiceImpl implements ChatService {
             if (sessionContext.getRecommendPlans() == null || sessionContext.getRecommendPlans().isEmpty()) {
                 return ChatResponseDto.of("추천드릴 요금제를 찾지 못했습니다. 다른 키워드로 다시 시도해 주세요.", chatRoomId, userId);
             }
+            recommendationSessionStateService.save(
+                    chatRoomId,
+                    RecommendationSessionContext.keyword(sessionContext.getExtractedKeyword(), sessionContext.getRecommendPlans())
+            );
             memory.clear();
             memory.add(SystemMessage.from(sessionContext.getExtractedKeyword()+"을 위한 요금제로 어떤 요금제를 추천해 줬어요. 사용자가 그 요금제를 알려주면, 챗봇이 그 요금제를 추천한 이유가 무엇일지 예상해서 당신이 추천한 것처럼 대답하세요 한문장으로 정리해주세요. 현재 시제로 정리하세요"));
             String reason = chain.execute(sessionContext.getRecommendPlans().get(0).toString());
@@ -463,6 +471,10 @@ public class ChatServiceImpl implements ChatService {
 
             log.info("preference : {}", preference);
             sessionContext.setRecommendationResponse(sendToRecommendationModule(preference, userId));
+            recommendationSessionStateService.save(
+                    chatRoomId,
+                    RecommendationSessionContext.preference(sessionContext.getRecommendationResponse())
+            );
 
             memory.clear();
             memory.add(SystemMessage.from(preference.toString()+"이러한 성향을 가진 사용자에게 어떤 요금제를 추천해 줬어요. 사용자가 그 요금제를 알려주면, 챗봇이 그 요금제를 추천한 이유가 무엇일지 예상해서 당신이 추천한 것처럼 대답하세요 한문장으로 정리해주세요. 현재 시제로 정리하세요"));
@@ -479,22 +491,39 @@ public class ChatServiceImpl implements ChatService {
         //feedback 추천
         if(JsonFeedbackParser.parseFeedbackResponse(response) != null){
             log.info("feedback 진입 : " + message);
+            RecommendationSessionContext recommendationContext = recommendationSessionStateService.find(chatRoomId)
+                    .orElse(null);
+            if (recommendationContext == null || recommendationContext.getRecommendPlans() == null
+                    || recommendationContext.getRecommendPlans().isEmpty()) {
+                return ChatResponseDto.of(
+                        "이전 추천 정보를 찾지 못했습니다. 요금제 추천을 다시 진행해 주세요.",
+                        chatRoomId,
+                        userId
+                );
+            }
             Long feedBackCode =  JsonFeedbackParser.parseFeedbackResponse(response).getFeedbackCode();
             log.info("feedback 코드 : " + feedBackCode + "feedback의 감정 : " + sentiment);
             Long sentimentCode = 1L;
             if(sentiment.equals("혐오")||sentiment.equals("놀람") ||sentiment.equals("슬픔")) sentimentCode=2L;
             if(sentiment.equals("분노")) sentimentCode = 3L;
-            log.info("감지된 keyword( keyword추천이 아니라면 null) : "+sessionContext.getExtractedKeyword());
+            String extractedKeyword = recommendationContext.getSource() == RecommendationSource.KEYWORD
+                    ? recommendationContext.getExtractedKeyword()
+                    : null;
+            log.info("복원된 keyword( keyword추천이 아니라면 null) : {}", extractedKeyword);
             FeedBackDto feedBackDto = FeedBackDto.builder()
-                    .keyword(sessionContext.getExtractedKeyword())
+                    .keyword(extractedKeyword)
                     .sentimentCode(sentimentCode)
                     .detailCode(feedBackCode)
                     .build();
-            if(sessionContext.getRecommendPlans() == null){ // 정보수집 기반 추천의 피드백
-                sessionContext.setRecommendationResponse(this.sendFeedBackToRecommendationModule(feedBackDto,userId,sessionContext.getRecommendationResponse().getRecommendPlans().get(0).getPlan().getPlanId()));
-            }else{//키워드 기반 추천의 피드백
-                sessionContext.setRecommendationResponse(this.sendFeedBackToRecommendationModule(feedBackDto,userId,sessionContext.getRecommendPlans().get(0).getPlan().getPlanId()));
-            }
+            sessionContext.setRecommendationResponse(this.sendFeedBackToRecommendationModule(
+                    feedBackDto,
+                    userId,
+                    recommendationContext.getRecommendPlans().get(0).getPlan().getPlanId()
+            ));
+            recommendationSessionStateService.save(
+                    chatRoomId,
+                    recommendationContext.withFeedbackRecommendation(sessionContext.getRecommendationResponse())
+            );
             //추천 이유 받는 prompt로 전환
             memory.clear();
             memory.add(SystemMessage.from(message+" 라는 피드백을 가진 사용자에게 다시 어떤 요금제를 추천해 줬어요. 사용자가 그 요금제를 알려주면, 챗봇이 그 요금제를 추천한 이유가 무엇일지 예상해서 (피드백이 반영되었음을 어필) 당신이 추천한 것처럼 대답하세요 한문장으로 정리해주세요. 현재 시제로 정리하세요"));
@@ -775,6 +804,7 @@ public class ChatServiceImpl implements ChatService {
     private ChatResponseDto endPromptAndRespond(String context, Long chatRoomId, Long userId,ChatRoom currentChatRoom,ChatMemory memory,String whattodoPrompt) {
         log.info("task가 끝이 났습니다.", context);
         chatSessionStateService.setPromptProcessing(chatRoomId, false);
+        recommendationSessionStateService.clear(chatRoomId);
         log.info("Redis 세션 상태를 초기화했습니다.");
         memory.clear();
         memory.add(SystemMessage.from(whattodoPrompt));
