@@ -2,11 +2,15 @@ package com.comprehensive.eureka.chatbot.langchain.dto;
 
 
 import com.comprehensive.eureka.chatbot.langchain.entity.enums.DataPeriod;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class PlanDto {
     private Long planId;
     private String planName;
@@ -21,4 +25,3 @@ public class PlanDto {
     private boolean isFamilyDataEnabled;
     private String planCategory;
 }
-

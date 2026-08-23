@@ -3,6 +3,8 @@ package com.comprehensive.eureka.chatbot.langchain.dto;
 import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.List;
@@ -11,6 +13,8 @@ import java.util.List;
 @Setter
 @Getter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class RecommendationResponseDto {
     private UserPreferenceDto userPreference;
     private Double avgDataUsage;
