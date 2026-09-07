@@ -43,6 +43,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
@@ -161,6 +162,7 @@ public class ChatServiceImpl implements ChatService {
 
 
     @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public ChatResponseDto generateReply(Long userId, Long chatRoomId, String message) throws JsonProcessingException {
         try {
             return chatRoomLockService.execute(chatRoomId, () -> generateReplyInRoom(userId, chatRoomId, message));
