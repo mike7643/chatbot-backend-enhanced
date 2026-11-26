@@ -189,7 +189,7 @@ public class ChatServiceImpl implements ChatService {
         ChatMessageDto chatMessageDto = saveChatMessage(userId, currentChatRoom, message, false, false,false, "mock reason");
         log.info("사용자 메시지를 저장했습니다 id : " + chatMessageDto.getMessageId());
         // 금칙어 필터링 작업
-        if (badWordCheck(userId, chatMessageDto.getMessage(),chatMessageDto.getTimestamp())) {
+        if (badWordCheck(userId, chatMessageDto.getMessageId(), chatMessageDto.getMessage(), chatMessageDto.getTimestamp())) {
             log.info("금칙어가 발견 되었습니다.");
             saveChatMessage(userId, currentChatRoom, "사용하신 메시지에 금지된 단어가 포함되어 있습니다.", true, false,false, "mock reason");
             return ChatResponseDto.fail("사용하신 메시지에 금지된 단어가 포함되어 있습니다.", chatResponseDto);
@@ -580,7 +580,7 @@ public class ChatServiceImpl implements ChatService {
 
     }
 
-    public boolean badWordCheck(Long userId, String message, Long sentAt) {
+    public boolean badWordCheck(Long userId, Long chatMessageId, String message, Long sentAt) {
         //금칙어 포함 시 금칙어 사용 기록에 저장 ( admin 모듈 ) 후 처리
         log.info("금칙어 check 중 ... message : " + message, "sentAt : " + sentAt );
         if (Arrays.asList(environment.getActiveProfiles()).contains("test")) {
@@ -589,7 +589,7 @@ public class ChatServiceImpl implements ChatService {
         boolean check = badWordService.checkBadWord(message);
         log.info("금칙어 check 결과 : " + check);
         if (check) {
-            saveForbiddenWordRecord(userId, message,sentAt);
+            saveForbiddenWordRecord(userId, chatMessageId, message, sentAt);
             log.info("saveForbiddenWordRecord 기록 완료");
             return true;
         }
@@ -625,10 +625,8 @@ public class ChatServiceImpl implements ChatService {
         return chatMessageDto;
     }
 
-    private void saveForbiddenWordRecord(Long userId, String message, Long sentAt) {
-        log.info("chatMessageInfo(findTopByOrderByIdDesc) : "+ message);
-
-        badWordService.sendBadwordRecord(userId, sentAt, message);
+    private void saveForbiddenWordRecord(Long userId, Long chatMessageId, String message, Long sentAt) {
+        badWordService.sendBadwordRecord(userId, chatMessageId, sentAt, message);
         log.info("admin모듈에 전송 완료");
     }
 
