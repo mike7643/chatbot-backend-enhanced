@@ -6,6 +6,8 @@ import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisOperations;
+import org.springframework.data.redis.core.SessionCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -27,13 +29,27 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
         return entries.stream().map(this::decode).toList();
     }
 
+    /**
+     * 삭제 → 재적재 → TTL 설정을 MULTI/EXEC로 묶는다.
+     * 중간에 실패하면 대화 문맥이 비거나 TTL 없이 남을 수 있기 때문이다.
+     */
     @Override
     public void updateMessages(Object memoryId, List<ChatMessage> messages) {
         String key = key(memoryId);
-        redisTemplate.delete(key);
-        if (messages.isEmpty()) return;
-        redisTemplate.opsForList().rightPushAll(key, messages.stream().map(this::encode).toList());
-        redisTemplate.expire(key, MEMORY_TTL);
+        List<String> encoded = messages.stream().map(this::encode).toList();
+        redisTemplate.execute(new SessionCallback<List<Object>>() {
+            @Override
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            public List<Object> execute(RedisOperations operations) {
+                operations.multi();
+                operations.delete(key);
+                if (!encoded.isEmpty()) {
+                    operations.opsForList().rightPushAll(key, encoded);
+                    operations.expire(key, MEMORY_TTL);
+                }
+                return operations.exec();
+            }
+        });
     }
 
     @Override
