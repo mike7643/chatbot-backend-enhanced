@@ -3,6 +3,7 @@ package com.comprehensive.eureka.chatbot.common.exception;
 import com.comprehensive.eureka.chatbot.common.dto.BaseResponseDto;
 import com.comprehensive.eureka.chatbot.common.dto.ErrorResponseDto;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -31,6 +32,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .badRequest()
                 .body(BaseResponseDto.fail(ec));
+    }
+    /**
+     * 같은 채팅방 메시지 처리 중 → 409 Conflict
+     */
+    @ExceptionHandler(ChatRoomBusyException.class)
+    public ResponseEntity<BaseResponseDto<ErrorResponseDto>> handleChatRoomBusyException(ChatRoomBusyException ex) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(BaseResponseDto.fail(ex.getErrorCode()));
     }
     /**
      * 그 외 예기치 못한 예외 처리

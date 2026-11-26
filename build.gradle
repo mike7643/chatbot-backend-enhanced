@@ -35,8 +35,10 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-	// 트랜잭션 경계 회귀 테스트(H2)
+	// 트랜잭션 경계 회귀 테스트(H2)와 Redis 기반 세션·락 통합 테스트(Testcontainers)
 	testRuntimeOnly 'com.h2database:h2'
+	testImplementation platform('org.testcontainers:testcontainers-bom:1.21.3')
+	testImplementation 'org.testcontainers:junit-jupiter'
 
 	implementation 'dev.langchain4j:langchain4j:1.0.1'
 	implementation 'dev.langchain4j:langchain4j-open-ai:1.0.1'

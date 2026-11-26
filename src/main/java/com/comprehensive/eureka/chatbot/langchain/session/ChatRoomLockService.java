@@ -1,5 +1,6 @@
 package com.comprehensive.eureka.chatbot.langchain.session;
 
+import com.comprehensive.eureka.chatbot.common.exception.ChatRoomBusyException;
 import lombok.RequiredArgsConstructor;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
@@ -17,8 +18,9 @@ public class ChatRoomLockService {
     public <T> T execute(Long chatRoomId, CheckedSupplier<T> action) throws Exception {
         RLock lock = redissonClient.getLock("chatbot:room:" + chatRoomId + ":lock");
         try {
+            // leaseTime을 지정하지 않아 Redisson watchdog이 LLM 응답 대기 동안 락을 연장한다.
             if (!lock.tryLock(WAIT_SECONDS, TimeUnit.SECONDS)) {
-                throw new IllegalStateException("동일 채팅방의 이전 메시지를 처리 중입니다.");
+                throw new ChatRoomBusyException();
             }
             return action.get();
         } catch (InterruptedException exception) {
