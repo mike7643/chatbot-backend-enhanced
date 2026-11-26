@@ -35,6 +35,9 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
+	// 트랜잭션 경계 회귀 테스트(H2)
+	testRuntimeOnly 'com.h2database:h2'
+
 	implementation 'dev.langchain4j:langchain4j:1.0.1'
 	implementation 'dev.langchain4j:langchain4j-open-ai:1.0.1'
 

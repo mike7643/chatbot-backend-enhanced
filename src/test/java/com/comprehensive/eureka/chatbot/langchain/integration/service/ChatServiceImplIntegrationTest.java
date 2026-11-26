@@ -9,6 +9,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.SpyBean;
@@ -18,7 +19,12 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 
+/**
+ * 실제 MySQL·LLM·내부 모듈이 모두 떠 있어야 하는 E2E 성격의 테스트.
+ * 기본 빌드에서는 건너뛰고, CHATBOT_E2E=true 환경에서만 실행한다.
+ */
 @SpringBootTest
+@EnabledIfEnvironmentVariable(named = "CHATBOT_E2E", matches = "true")
 class ChatServiceImplIntegrationTest {
 
     @SpyBean
