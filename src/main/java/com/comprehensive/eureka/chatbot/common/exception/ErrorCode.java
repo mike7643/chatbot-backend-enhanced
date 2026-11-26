@@ -35,6 +35,7 @@ public enum ErrorCode {
     CHAT_MESSAGE_RETRIEVE_FAILED      (20033, "CHAT_MESSAGE_RETRIEVE_FAILED",      "채팅 메시지를 조회할 수 없습니다."),
     //챗봇 답변 생성 에러
     CHATBOT_PROMPT_ERROR(20034,"CHATBOT_PROMPT_ERROR","챗봇 답변을 생성 중 에러 발생했습니다."),
+    CHAT_ROOM_BUSY(20035, "CHAT_ROOM_BUSY", "이전 메시지에 대한 답변을 준비 중입니다. 잠시 후 다시 보내주세요."),
     //외부 api호출 오류
     DATA_NOT_FOUND(20035, "DATA_NOT_FOUND","외부 API 호출에서 실패했습니다.");
     private final int code;

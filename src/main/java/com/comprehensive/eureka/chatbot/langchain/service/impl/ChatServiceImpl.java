@@ -14,6 +14,7 @@ import com.comprehensive.eureka.chatbot.client.dto.response.GetUserProfileDetail
 import com.comprehensive.eureka.chatbot.client.dto.response.LoginUserResponseDto;
 import com.comprehensive.eureka.chatbot.common.dto.BaseResponseDto;
 import com.comprehensive.eureka.chatbot.common.exception.ChatException;
+import com.comprehensive.eureka.chatbot.common.exception.ChatRoomBusyException;
 import com.comprehensive.eureka.chatbot.common.exception.ErrorCode;
 import com.comprehensive.eureka.chatbot.langchain.dto.*;
 import com.comprehensive.eureka.chatbot.langchain.entity.ChatMessage;
@@ -166,7 +167,7 @@ public class ChatServiceImpl implements ChatService {
     public ChatResponseDto generateReply(Long userId, Long chatRoomId, String message) throws JsonProcessingException {
         try {
             return chatRoomLockService.execute(chatRoomId, () -> generateReplyInRoom(userId, chatRoomId, message));
-        } catch (JsonProcessingException exception) {
+        } catch (JsonProcessingException | ChatRoomBusyException exception) {
             throw exception;
         } catch (Exception exception) {
             throw new IllegalStateException("채팅 응답 처리 중 오류가 발생했습니다.", exception);
