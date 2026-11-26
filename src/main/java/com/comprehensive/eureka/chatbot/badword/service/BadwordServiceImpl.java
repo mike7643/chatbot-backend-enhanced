@@ -4,7 +4,6 @@ import com.comprehensive.eureka.chatbot.badword.dto.request.UserForbiddenWordsCh
 import com.comprehensive.eureka.chatbot.badword.redis.service.AllowWordRedisService;
 import com.comprehensive.eureka.chatbot.badword.redis.service.ForbiddenWordRedisService;
 import com.comprehensive.eureka.chatbot.client.AdminClient;
-import com.comprehensive.eureka.chatbot.langchain.service.impl.BanWordValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,6 +18,7 @@ public class BadwordServiceImpl implements BadwordService {
     private final ForbiddenWordRedisService forbiddenWordRedisService;
     private final AllowWordRedisService allowWordRedisService;
     private final AdminClient adminClient;
+    private final BanWordValidatorProvider banWordValidatorProvider;
 
     @Override
     public Set<String> getAllForbiddendWords() {
@@ -38,13 +38,7 @@ public class BadwordServiceImpl implements BadwordService {
 
     @Override
     public boolean checkBadWord(String message){
-        Set<String> badWords = getAllForbiddendWords();
-        Set<String> allowedWords = getAllAllowedWords();
-
-        BanWordValidator banWordValidator = new BanWordValidator(badWords, allowedWords);
-        log.info("BanWordValidator 생성 완료");
-
-        return banWordValidator.checkBanWord(message);
+        return banWordValidatorProvider.get().checkBanWord(message);
     }
 
 
@@ -52,15 +46,7 @@ public class BadwordServiceImpl implements BadwordService {
     public void sendBadwordRecord(Long userId, Long chatMessageId, Long sentAt, String message){
         log.info("금칙어 사용 기록 전송 준비: chatMessageId={}, sentAt={}", chatMessageId, sentAt);
 
-        Set<String> badWords = getAllForbiddendWords();
-        Set<String> allowedWords = getAllAllowedWords();
-        log.info("등록된 금칙어 개수" + badWords.size());
-        log.info("등록된 허용어 개수" + allowedWords.size());
-
-        BanWordValidator banWordValidator = new BanWordValidator(badWords, allowedWords);
-        log.info("BanWordValidator 생성 완료");
-
-        List<String> found = banWordValidator.findBanWords(message);
+        List<String> found = banWordValidatorProvider.get().findBanWords(message);
         log.info("금칙어 사용 기록 insert 중 -> 사용한 금칙어 개수 : " + found.size() + "userId : " + userId + "message : " + message );
 
         UserForbiddenWordsChatCreateRequestDto userForbiddenWordsChatCreateRequestDto = UserForbiddenWordsChatCreateRequestDto.builder()

@@ -78,7 +78,7 @@ public class BanWordValidator {
 
         while (!queue.isEmpty()) {
             Emit currentEmit = queue.poll();
-            log.info(currentEmit.toString());
+            log.debug("{}", currentEmit);
 
             String word = currentEmit.getKeyword();
             String type = keywordTypes.get(word);
