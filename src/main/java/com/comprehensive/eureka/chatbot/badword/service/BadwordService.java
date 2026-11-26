@@ -18,6 +18,6 @@ public interface BadwordService {
     Set<String> getAllForbiddendWords();
     Set<String> getAllAllowedWords();
     boolean checkBadWord(String message) throws JsonProcessingException;
-    void sendBadwordRecord(Long userId, Long chatMesageId, String message);
+    void sendBadwordRecord(Long userId, Long chatMessageId, Long sentAt, String message);
 //    void deleteBadWord(String word);
 }

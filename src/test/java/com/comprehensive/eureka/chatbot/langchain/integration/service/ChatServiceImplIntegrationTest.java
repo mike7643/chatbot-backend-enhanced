@@ -44,7 +44,7 @@ class ChatServiceImplIntegrationTest {
         // ✅ Redis 접근 방지용 mock
         doReturn(false)
                 .when(chatServiceImpl)
-                .badWordCheck(anyLong(), anyString(), anyLong());
+                .badWordCheck(anyLong(), anyLong(), anyString(), anyLong());
     }
 
     @Test

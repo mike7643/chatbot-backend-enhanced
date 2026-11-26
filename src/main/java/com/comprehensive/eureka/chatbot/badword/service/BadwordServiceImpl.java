@@ -49,8 +49,8 @@ public class BadwordServiceImpl implements BadwordService {
 
 
     @Override
-    public void sendBadwordRecord(Long userId,Long sentAt, String message){
-        log.info("저장하려는,욕설이 들어간 chat의 chatMessageId : "+ message + " sentAt" + sentAt);
+    public void sendBadwordRecord(Long userId, Long chatMessageId, Long sentAt, String message){
+        log.info("금칙어 사용 기록 전송 준비: chatMessageId={}, sentAt={}", chatMessageId, sentAt);
 
         Set<String> badWords = getAllForbiddendWords();
         Set<String> allowedWords = getAllAllowedWords();
@@ -68,10 +68,18 @@ public class BadwordServiceImpl implements BadwordService {
                 .chatMessageText(message)
                 .forbiddenWords(found)
                 .sentAt(sentAt)
+                .eventId(eventIdOf(chatMessageId))
                 .build();
 
         log.info("UserForbiddenWordsChatCreateRequestDto 생성 완료" + userForbiddenWordsChatCreateRequestDto.getChatMessageText() + "forbiddenwords found 의 개수"+ found.size());
         adminClient.insertForbiddenWordRecord(userForbiddenWordsChatCreateRequestDto);
         log.info("admin에 요청 완료");
+    }
+
+    /**
+     * 같은 채팅 메시지에 대한 기록은 재시도되더라도 항상 같은 eventId를 갖는다.
+     */
+    static String eventIdOf(Long chatMessageId) {
+        return "chat-message:" + chatMessageId;
     }
 }
