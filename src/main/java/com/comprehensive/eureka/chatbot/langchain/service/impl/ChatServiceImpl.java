@@ -266,21 +266,21 @@ public class ChatServiceImpl implements ChatService {
 
 
             chatSessionStateService.setPromptProcessing(chatRoomId, false); //이 prompt 를 종료시키고 다시 whattodo로
-            chatResponseDto = ChatResponseDto.builder()
-                    .messageId(chatMessageRepository.findTopByOrderByIdDesc().getId())
+            String profileReply = getUserProfileDetailResponseDto.toString() + "\n 어떤 도움을 드릴까요? {요금제 추천, 요금제 조회, 사용자 정보 알기, 심심풀이} 선택해주세요!  ";
+            // 전역 최신 메시지(findTopByOrderByIdDesc)는 다른 채팅방의 메시지일 수 있으므로, 이 요청에서 저장한 메시지 ID를 사용한다.
+            Long profileMessageId = null;
+            if (removeTarget.stream().noneMatch(profileReply::contains)) {
+                profileMessageId = saveChatMessage(userId, currentChatRoom, profileReply, true, false, false, "mock reason").getMessageId();
+            }
+            return ChatResponseDto.builder()
+                    .messageId(profileMessageId)
                     .userId(userId)
                     .chatRoomId(chatRoomId)
-                    .message(getUserProfileDetailResponseDto.toString() + "\n 어떤 도움을 드릴까요? {요금제 추천, 요금제 조회, 사용자 정보 알기, 심심풀이} 선택해주세요!  ")
+                    .message(profileReply)
                     .isBot(true)
                     .isRecommended(false)
                     .recommendationReason("mock reason")
                     .build();
-            // gpt가 사용자의 응답을 듣고, task가 끝이라고 판단 했을 때 내는 trigger 문장들은  저장 x -> 뒤에서 whattodo prompt의 결과로 변경 후 저장
-            shouldSave = removeTarget.stream().noneMatch(chatResponseDto.getMessage()::contains);
-            if (shouldSave) {
-                saveChatMessage(userId, currentChatRoom, chatResponseDto.getMessage(), true, false, false,"mock reason");
-            }
-            return chatResponseDto;
         }
 
         if(response.contains("[요금제 조회 준비 완료]")){
@@ -380,9 +380,9 @@ public class ChatServiceImpl implements ChatService {
 
 
             finalReply += "'\n 이 요금제에 대해서 평가 해주세요! 가격, 데이터, 부가서비스 등 만족하시나요? 아니라면, 어떤 게 마음에 안드시는 지 알려주세요! 끝내셔도 됩니다.";
-            saveChatMessage(userId, currentChatRoom, finalReply, true, true,false, reason);
+            ChatMessageDto savedRecommendation = saveChatMessage(userId, currentChatRoom, finalReply, true, true,false, reason);
             return ChatResponseDto.builder()
-                    .messageId(chatMessageRepository.findTopByOrderByIdDesc().getId())
+                    .messageId(savedRecommendation.getMessageId())
                     .userId(userId)
                     .chatRoomId(chatRoomId)
                     .message(finalReply)
