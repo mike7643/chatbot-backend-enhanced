@@ -54,5 +54,19 @@ dependencies {
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+	useJUnitPlatform {
+		excludeTags 'benchmark'
+	}
+}
+
+// 성능 측정 전용: ./gradlew benchmarkTest (결과는 build/reports/benchmark)
+tasks.register('benchmarkTest', Test) {
+	description = '금칙어 필터 등 성능 측정 테스트를 실행합니다.'
+	group = 'verification'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	useJUnitPlatform {
+		includeTags 'benchmark'
+	}
+	outputs.upToDateWhen { false }
 }
