@@ -4,6 +4,7 @@ import com.comprehensive.eureka.chatbot.badword.dto.request.UserForbiddenWordsCh
 import com.comprehensive.eureka.chatbot.badword.redis.service.AllowWordRedisService;
 import com.comprehensive.eureka.chatbot.badword.redis.service.ForbiddenWordRedisService;
 import com.comprehensive.eureka.chatbot.client.AdminClient;
+import com.comprehensive.eureka.chatbot.langchain.service.impl.BanWordValidator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -24,13 +25,13 @@ class BadwordServiceImplTest {
     @Mock private ForbiddenWordRedisService forbiddenWordRedisService;
     @Mock private AllowWordRedisService allowWordRedisService;
     @Mock private AdminClient adminClient;
+    @Mock private BanWordValidatorProvider banWordValidatorProvider;
 
     @InjectMocks private BadwordServiceImpl badwordService;
 
     @Test
     void 같은_메시지의_기록은_재전송되어도_같은_eventId를_갖는다() {
-        given(forbiddenWordRedisService.getAllForbiddenWords()).willReturn(Set.of("바보"));
-        given(allowWordRedisService.getAllAllowWords()).willReturn(Set.of());
+        given(banWordValidatorProvider.get()).willReturn(new BanWordValidator(Set.of("바보"), Set.of()));
 
         badwordService.sendBadwordRecord(1L, 42L, 1_700_000_000L, "너 바보야");
         badwordService.sendBadwordRecord(1L, 42L, 1_700_000_000L, "너 바보야");
